@@ -110,7 +110,7 @@ We ordered the first principal component for each location to see if a reasonabl
 
 ### Plots of PC1 vs. PC2 by Organelle
 
-<img src="images/PCplots.png">
+<img src="images/PCPlots.png">
 
 ## Factor Analysis
 
