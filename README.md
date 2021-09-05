@@ -2,7 +2,7 @@
 
 # Amino Acid Composition of Single Pass Transmembrane Domains
 
-*The purpose of this assignment was to demonstrate various techniques of multivariate statistics.  I chose to examine whether specific amino acids were favored at particuluar locations within transmembrane helices, because I wondered whether any amino acid sequence would function to simply span a membrane. It turns out that chemically similar amino acids may be interchangeable at several positions within a transmembrane domain, but not any old sequence will do for a transmembrane domain.*
+*The purpose of this assignment was to demonstrate various techniques of multivariate statistics.  I chose to examine whether specific amino acids were favored at particuluar locations within transmembrane helices, because I wondered if any amino acid sequence would function to simply span a membrane. It turns out that chemically similar amino acids may be interchangeable at several positions within a transmembrane domain, but not any old sequence will do for a transmembrane domain.*
 
 ## Introduction
 
