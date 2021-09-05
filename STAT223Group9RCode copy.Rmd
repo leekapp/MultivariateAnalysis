@@ -1,0 +1,920 @@
+---
+title: "STAT 223 Final Project"
+author: "Lee Kapp"
+date: "5/15/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+lapply(c("readxl","tidyverse", "magrittr", "GGally", "car", "caret", "corrplot", "randomcoloR", "skimr", "kableExtra", "psych", "MVN", "ggrepel", "SimComp", "heplots", "cluster", "NbClust", "factoextra"), library, character.only=T)
+options(digits=4)
+purps <- randomColor(count = 7, hue = "purple")
+greens <- randomColor(count = 6, hue = "green")
+reds <- randomColor(count = 2, hue = "red")
+blues <- randomColor(count = 3, hue = "blue")
+palette <- c(purps, "yellow", "orange", greens, reds, blues)
+names(palette) <- c("V", "I", "L", "G", "A", "F", "W", "C", "M", "P", "Y", "T", "S", "N", "Q", "D", "E", "H", "K", "R")
+print(purps)
+print(greens)
+print(reds)
+print(blues)
+```
+
+
+### Data Import
+```{r data}
+data <- read_xls("/Users/leekapp/Documents/Portfolio/STAT223Final/AminoAcidAbundanceVertebrates.xls", sheet = "Combined")
+ER <- data %>% filter(location == "ER")
+golgi <- data %>% filter(location == "Golgi")
+tgnEndo <- data %>% filter(location == "TGNEndo")
+lyso <- data %>% filter(location == "lysosomes")
+PM <- data %>% filter(location == "PM_total")
+```
+
+### Descriptive Stats
+```{r description}
+erMin <- apply(ER[-c(1,22)], 2, min)
+erMean <- apply(ER[-c(1,22)], 2, mean)
+erSD <- apply(ER[-c(1,22)], 2, mean)
+erMax <- apply(ER[-c(1,22)], 2, max)
+
+ERsumm <- data.frame(rbind(erMin, erMean, erSD, erMax))
+rownames(ERsumm) <- c("min", "mean", "std dev", "max")
+ERsumm <- round(ERsumm, 4)
+
+golgiMin <- apply(golgi[-c(1,22)], 2, min)
+golgiMean <- apply(golgi[-c(1,22)], 2, mean)
+golgiSD <- apply(golgi[-c(1,22)], 2, mean)
+golgiMax <- apply(golgi[-c(1,22)], 2, max)
+
+golgiSumm <- data.frame(rbind(golgiMin, golgiMean, golgiSD, golgiMax))
+rownames(golgiSumm) <- c("min", "mean", "std dev", "max")
+golgiSumm <- round(golgiSumm, 4)
+
+lysoMin <- apply(lyso[-c(1,22)], 2, min)
+lysoMean <- apply(lyso[-c(1,22)], 2, mean)
+lysoSD <- apply(lyso[-c(1,22)], 2, mean)
+lysoMax <- apply(lyso[-c(1,22)], 2, max)
+
+lysoSumm <- data.frame(rbind(lysoMin, lysoMean, lysoSD, lysoMax))
+rownames(lysoSumm) <- c("min", "mean", "std dev", "max")
+lysoSumm <- round(lysoSumm, 4)
+
+pmMin <- apply(PM[-c(1,22)], 2, min)
+pmMean <- apply(PM[-c(1,22)], 2, mean)
+pmSD <- apply(PM[-c(1,22)], 2, mean)
+pmMax <- apply(PM[-c(1,22)], 2, max)
+
+pmSumm <- data.frame(rbind(pmMin, pmMean, pmSD, pmMax))
+rownames(pmSumm) <- c("min", "mean", "std dev", "max")
+pmSumm <- round(pmSumm, 4)
+
+tgnMin <- apply(tgnEndo[-c(1,22)], 2, min)
+tgnMean <- apply(tgnEndo[-c(1,22)], 2, mean)
+tgnSD <- apply(tgnEndo[-c(1,22)], 2, mean)
+tgnMax <- apply(tgnEndo[-c(1,22)], 2, max)
+
+tgnSumm <- data.frame(rbind(tgnMin, tgnMean, tgnSD, tgnMax))
+rownames(tgnSumm) <- c("min", "mean", "std dev", "max")
+tgnSumm <- round(tgnSumm, 4)
+
+ERsumm %>% 
+  kbl(caption = "Summary Statistics by Amino Acid: Endoplasmic Reticulum") %>% 
+  kable_classic(full_width = F, html_font = "Courier", font_size = 10) %>% 
+  column_spec(1, bold = T) %>% 
+  row_spec(0, bold = T) %>% 
+  save_kable("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/ERsumm.pdf")
+
+golgiSumm %>% 
+  kbl(caption = "Summary Statistics by Amino Acid: Golgi") %>% 
+  kable_classic(full_width = F, html_font = "Courier", font_size = 10) %>% 
+  column_spec(1, bold = T) %>% 
+  row_spec(0, bold = T) %>% 
+  save_kable("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/golgiSumm.pdf")
+
+lysoSumm %>% 
+  kbl(caption = "Summary Statistics by Amino Acid: Lysosomes") %>% 
+  kable_classic(full_width = F, html_font = "Courier", font_size = 10) %>% 
+  column_spec(1, bold = T) %>% 
+  row_spec(0, bold = T) %>% 
+  save_kable("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/lysoSumm.pdf")
+
+tgnSumm %>% 
+  kbl(caption = "Summary Statistics by Amino Acid: TGN:Endosomes") %>% 
+  kable_classic(full_width = F, html_font = "Courier", font_size = 10) %>% 
+  column_spec(1, bold = T) %>% 
+  row_spec(0, bold = T) %>% 
+  save_kable("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/tgnSumm.pdf")
+
+pmSumm %>% 
+  kbl(caption = "Summary Statistics by Amino Acid: Plasma Membrane") %>% 
+  kable_classic(full_width = F, html_font = "Courier", font_size = 10) %>% 
+  column_spec(1, bold = T) %>% 
+  row_spec(0, bold = T) %>% 
+  save_kable("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/pmSumm.pdf")
+```
+
+
+
+### EDA plots - need a loop to make one plot per amino acid and then facet by amino acid
+```{r eda plots}
+
+vars <- colnames(data)[2:21]
+for(i in vars) {
+  plt <- ggplot(data = data, mapping = aes_string(x = "Position", y = i,  color = "location")) +
+    geom_point(size = 2) +
+    theme_minimal() +
+    labs(title = paste("Plot of ", i), y = paste("Amino Acid ", i)) +
+    facet_wrap(~location, nrow = 4) +
+    ggsave(paste("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/EDAplot ", i, ".pdf"))
+    
+    #print(plt)
+}
+```
+
+
+### Variances and Correlations 
+```{r vars}
+#checking variances
+ER_S <- var(ER[-c(1,22)])
+golgi_S <- var(golgi[-c(1,22)])
+lyso_S <- var(lyso[-c(1,22)])
+PM_S <- var(PM[-c(1,22)])
+tgnEndo_S <- var(tgnEndo[-c(1,22)])
+
+#They're all tiny
+print("ER")
+print(diag(ER_S))
+print("Golgi")
+print(diag(golgi_S))
+print("Lysosomes")
+print(diag(lyso_S))
+print("PM")
+print(diag(PM_S))
+print("TGN:Endo")
+print(diag(tgnEndo_S))
+
+#checking correlations
+ER_R <- cor(ER[-c(1,22)])
+golgi_R <- cor(golgi[-c(1,22)])
+lyso_R <- cor(lyso[-c(1,22)])
+PM_R <- cor(PM[-c(1,22)])
+tgnEndo_R <- cor(tgnEndo[-c(1,22)])
+```
+
+
+### Corrplots
+```{r corrplots}
+#corrplots
+pdf("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/ERcorrplot.pdf")
+corrplot(ER_R, title = "Endoplasmic Reticulum", mar=c(0,0,2,0), order = "hclust", addrect = 4)
+dev.off()
+
+pdf("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/Golgicorrplot.pdf")
+corrplot(golgi_R, title = "Golgi", mar=c(0,0,2,0), order = "hclust", addrect = 7)
+dev.off()
+
+pdf("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/Lysocorrplot.pdf")
+corrplot(lyso_R, title = "Lysosomes", mar=c(0,0,2,0), order = "hclust", addrect = 7)
+dev.off()
+
+pdf("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/PMcorrplot.pdf")
+corrplot(PM_R, title = "Plasma Membrane", mar=c(0,0,2,0), order = "hclust", addrect = 5)
+dev.off()
+
+pdf("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/TGNEndocorrplot.pdf")
+corrplot(tgnEndo_R, title = "TGN:Endosomes", mar=c(0,0,2,0), order = "hclust", addrect = 4)
+dev.off()
+
+# mar=c(0,0,2,0)
+#https://stackoverflow.com/questions/40509217/how-to-have-r-corrplot-title-position-correct
+
+```
+
+
+### MVN? There are no MVN outliers in the raw data
+### None of the amino acids are univariate normal across all locations
+### ER: only predictors that are univariate normal are: I, L, V, F, C, A, G, P
+### Golgi: L, W, C, A, G, T, S
+### Lysosomes: V
+### PM: L, C, G, T, M
+### TGN: A
+```{r mvn}
+data %>% select(I:Y) %>%
+   ggpairs(title = "Pair plot of hydrophobic amino acids", lower = list(continuous = wrap("smooth", method = "lm", se = F, alpha = 0.5, color="steelblue")),
+           diag = list(continuous = wrap("densityDiag", fill = "steelblue" )))
+ggsave("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/pairs1.pdf")
+
+data %>% select(C:M) %>%
+   ggpairs(title = "Pair plot of neutral amino acids", lower = list(continuous = wrap("smooth", method = "lm", se = F,
+                                          alpha = 0.5, color="steelblue")),
+           diag = list(continuous = wrap("densityDiag", fill = "steelblue" )))
+ggsave("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/pairs2.pdf")
+
+data %>% select(H:R) %>%
+   ggpairs(title = "Pair plot of charged amino acids", lower = list(continuous = wrap("smooth", method = "lm", se = F,
+                                          alpha = 0.5, color="steelblue")),
+           diag = list(continuous = wrap("densityDiag", fill = "steelblue" )))
+ggsave("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/pairs3.pdf")
+
+mvn(data=ER[-c(1,22)], mvnTest="mardia", multivariatePlot="qq")
+mvn(data=golgi[-c(1,22)], mvnTest="mardia", multivariatePlot="qq")
+mvn(data=lyso[-c(1,22)], mvnTest="mardia", multivariatePlot="qq")
+mvn(data=PM[-c(1,22)], mvnTest="mardia", multivariatePlot="qq")
+mvn(data=tgnEndo[-c(1,22)], mvnTest="mardia", multivariatePlot="qq")
+```
+
+### Log transformation
+```{r log}
+data[data == 0] <- 0.000001 # replacing 0s with a small number
+log_data <- log(data[c(2:21)])
+log_data <- cbind(data[c(1,22)], log_data)
+log_data$Position <- as.integer(log_data$Position)
+```
+
+### MVN of log transformed data? Logit transformation achieved same regarding establishing MVN as log
+```{r mvn log}
+logER <- log_data %>% filter(location == "ER")
+loggolgi <- log_data %>% filter(location == "Golgi")
+logtgnEndo <- log_data %>% filter(location == "TGNEndo")
+loglyso <- log_data %>% filter(location == "lysosomes")
+logPM <- log_data %>% filter(location == "PM_total")
+
+log_data %>% select(I:Y) %>%
+   ggpairs(title = "Log transformed: hydrophobic amino acids", lower = list(continuous = wrap("smooth", method = "lm", se = F,
+                                          alpha = 0.5, color="steelblue")),
+           diag = list(continuous = wrap("densityDiag", fill = "steelblue" )))
+ggsave("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/log_pairs1.pdf")
+
+log_data %>% select(C:M) %>%
+   ggpairs(title = "Log transformed: neutral amino acids", lower = list(continuous = wrap("smooth", method = "lm", se = F,
+                                          alpha = 0.5, color="steelblue")),
+           diag = list(continuous = wrap("densityDiag", fill = "steelblue" )))
+ggsave("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/log_pairs2.pdf")
+
+log_data %>% select(H:R) %>%
+   ggpairs(title = "Log transformed: charged amino acids", lower = list(continuous = wrap("smooth", method = "lm", se = F,
+                                          alpha = 0.5, color="steelblue")),
+           diag = list(continuous = wrap("densityDiag", fill = "steelblue" )))
+ggsave("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/log_pairs3.pdf")
+
+mvn(data=logER[-c(1,2)], mvnTest="mardia", multivariateOutlierMethod = "quan", showOutliers = T, multivariatePlot="qq", showNewData = T)
+golgiResult <- mvn(data=loggolgi[-c(1,2)], mvnTest="mardia", multivariateOutlierMethod = "quan", showOutliers = T,multivariatePlot="qq", showNewData = T)
+mvn(data=loglyso[-c(1,2)], mvnTest="mardia", multivariateOutlierMethod = "quan", showOutliers = T, multivariatePlot="qq", showNewData = T)
+mvn(data=logPM[-c(1,2)], mvnTest="mardia", multivariateOutlierMethod = "quan", showOutliers = T, multivariatePlot="qq", showNewData = T)
+tgnResult <- mvn(data=logtgnEndo[-c(1,2)], mvnTest="mardia", multivariateOutlierMethod = "quan", showOutliers = T, multivariatePlot="qq", showNewData = T)
+
+```
+
+### Logit transformation
+```{r logit}
+data[data == 0] <- 0.000001 # replacing 0s with a small number
+logit_data <- logit(data[c(2:21)])
+logit_data <- cbind(data[c(1,22)], logit_data)
+logit_data$Position <- as.integer(logit_data$Position)
+```
+
+### MVN of logit transformed data?
+```{r mvn log}
+logitER <- logit_data %>% filter(location == "ER")
+logitgolgi <- logit_data %>% filter(location == "Golgi")
+logittgnEndo <- logit_data %>% filter(location == "TGNEndo")
+logitlyso <- logit_data %>% filter(location == "lysosomes")
+logitPM <- logit_data %>% filter(location == "PM_total")
+
+logit_data %>% select(I:Y) %>%
+   ggpairs(lower = list(continuous = wrap("smooth", method = "loess", se = F,
+                                          alpha = 0.5, color="steelblue")),
+           diag = list(continuous = wrap("densityDiag", fill = "steelblue" )))
+
+logit_data %>% select(C:M) %>%
+   ggpairs(lower = list(continuous = wrap("smooth", method = "loess", se = F,
+                                          alpha = 0.5, color="steelblue")),
+           diag = list(continuous = wrap("densityDiag", fill = "steelblue" )))
+
+logit_data %>% select(H:R) %>%
+   ggpairs(lower = list(continuous = wrap("smooth", method = "loess", se = F,
+                                          alpha = 0.5, color="steelblue")),
+           diag = list(continuous = wrap("densityDiag", fill = "steelblue" )))
+
+mvn(data=logitER[-c(1,2)], mvnTest="mardia", multivariateOutlierMethod = "quan", showOutliers = T, multivariatePlot="qq")
+mvn(data=logitgolgi[-c(1,2)], mvnTest="mardia", multivariateOutlierMethod = "quan", showOutliers = T, multivariatePlot="qq")
+mvn(data=logitlyso[-c(1,2)], mvnTest="mardia", multivariateOutlierMethod = "quan", showOutliers = T, multivariatePlot="qq")
+mvn(data=logitPM[-c(1,2)], mvnTest="mardia", multivariateOutlierMethod = "quan", showOutliers = T, multivariatePlot="qq")
+mvn(data=logittgnEndo[-c(1,2)], mvnTest="mardia", multivariateOutlierMethod = "quan", showOutliers = T, multivariatePlot="qq")
+```
+
+### no MVN outliers
+```{r no outliers}
+#indexing row names to exclude MVN outliers
+Golgiidx <- as.integer(rownames(golgiResult$multivariateOutliers))
+TGNidx <- as.integer(rownames(tgnResult$multivariateOutliers))
+
+GolgiNoOut <- loggolgi[Golgiidx,]
+TGNnoOut <- logtgnEndo[TGNidx,]
+
+noOutData <- rbind(GolgiNoOut, TGNnoOut) %>% arrange(location, Position)
+```
+
+
+### Grouping MVN data without outliers for MANOVA
+```{r mvn data}
+mvnData <- rbind(logER, loglyso, logPM, noOutData) %>% arrange(location, Position)
+fullset <- log_data %>% filter(location != "Golgi" | location != "TGNEndo")
+boxM(cbind(I, L, V, F, W, Y, C, A, G, P, T, S, M, H, Q, N, E, D, K, R)~factor(location), data = fullset)
+```
+
+### Problem is that in the mvnData, not all positions are the same for each location because outliers were removed
+### Which amino acids in the TM domain vary most by position per location?
+Need anova(residue~position) for I:Y, C:M, and H:R
+```{r manova}
+hydros <- mvnData %>% select(I:Y)
+neutral <- mvnData %>% select(C, M, Q, N, A, G)
+polar <- mvnData %>% select(P:S) 
+charged <- mvnData %>% select(H, E:R)
+
+hydros <- cbind(mvnData[c(1,22)], hydros)
+neutral <- cbind(mvnData[c(1,22)], neutral)
+polar <- cbind(mvnData[c(1,22)], polar)
+charged <- cbind(mvnData[c(1,22)], charged)
+
+mvnER <- mvnData %>% filter(location == "ER")
+mvnGolgi <- mvnData %>% filter(location == "Golgi")
+mvnPM <- mvnData %>% filter(location == "PM_total")
+mvnLyso <- mvnData %>% filter(location == "lysosomes")
+mvnTGN <- mvnData %>% filter(location == "TGNEndo")
+
+hydroMod<- manova(cbind(I, L, V, F, W, Y)~factor(location), data = hydros)#Fits the MANOVA model for meanvec of vars by location
+summary(hydroMod, test="Wilks") 
+
+neutMod <- manova(cbind(C, M, Q, N, A, G)~factor(location), data=neutral)#Fits the MANOVA model for meanvec of vars by location
+summary(neutMod, test="Wilks") 
+
+chargeMod <- manova(cbind(H, E, D, K, R)~factor(location), data=charged)#Fits the MANOVA model for meanvec of vars by location
+summary(chargeMod, test="Wilks") 
+
+polMod <- manova(cbind(P, T, S)~factor(location), data=polar)#Fits the MANOVA model for meanvec of vars by location
+summary(polMod, test="Wilks") 
+
+hydroModP<- manova(cbind(I, L, V, F, W, Y)~Position, data = hydros)#Fits the MANOVA model for meanvec of vars by location
+summary(hydroModP, test="Wilks") 
+
+neutModP <- manova(cbind(C, M, Q, N, A, G)~Position, data=neutral)#Fits the MANOVA model for meanvec of vars by location
+summary(neutModP, test="Wilks") 
+
+chargeModP <- manova(cbind(H, E, D, K, R)~Position, data=charged)#Fits the MANOVA model for meanvec of vars by location
+summary(chargeModP, test="Wilks") 
+
+polModP <- manova(cbind(P, T, S)~Position, data=polar)#Fits the MANOVA model for meanvec of vars by location
+summary(polModP, test="Wilks") 
+```
+
+### Decomposing MANOVA - All amino acids differ by location
+```{r finding diffs}
+summary.aov(hydroMod)
+summary.aov(neutMod)
+summary.aov(polMod)
+summary.aov(chargeMod)
+
+summary.aov(hydroModP)
+summary.aov(neutModP)
+summary.aov(polMod)
+summary.aov(chargeModP)
+
+boxM(cbind(I, L, V, F, W, Y)~factor(location), data = hydros)
+boxM(cbind(C, M, Q, N, A, G)~factor(location), data=neutral)
+boxM(cbind(H, E, D, K, R)~factor(location), data=charged)
+boxM(cbind(P, T, S)~factor(location), data=polar)
+
+```
+
+### Pairwise t tests
+```{r t}
+pairwise.t.test(mvnData$I, mvnData$location, p.adjust.method = "bonferroni")
+pairwise.t.test(data$I, data$location, p.adjust.method = "bonferroni")
+pairwise.t.test(log_data$I, log_data$location, p.adjust.method = "bonferroni")
+```
+
+
+### MANOVA with log transformed data with outliers present
+```{r raw log_data}
+hydros <- log_data %>% select(I:Y)
+neutral <- log_data %>% select(C, M, Q, N, A, G)
+polar <- log_data %>% select(P:S) 
+charged <- log_data %>% select(H, E:R)
+
+hydros <- cbind(log_data[c(1,2)], hydros)
+neutral <- cbind(log_data[c(1,2)], neutral)
+polar <- cbind(log_data[c(1,2)], polar)
+charged <- cbind(log_data[c(1,2)], charged)
+
+logER <- log_data %>% filter(location == "ER")
+logGolgi <- log_data %>% filter(location == "Golgi")
+logPM <- log_data %>% filter(location == "PM_total")
+logLyso <- log_data %>% filter(location == "lysosomes")
+logTGN <- log_data %>% filter(location == "TGNEndo")
+
+hydroMod<- manova(cbind(I, L, V, F, W, Y)~factor(location), data = hydros)#Fits the MANOVA model for meanvec of vars by location
+summary(hydroMod, test="Wilks") 
+
+neutMod <- manova(cbind(C, M, Q, N, A, G)~factor(location), data=neutral)#Fits the MANOVA model for meanvec of vars by location
+summary(neutMod, test="Wilks") 
+
+chargeMod <- manova(cbind(H, E, D, K, R)~factor(location), data=charged)#Fits the MANOVA model for meanvec of vars by location
+summary(chargeMod, test="Wilks") 
+
+polMod <- manova(cbind(P, T, S)~factor(location), data=polar)#Fits the MANOVA model for meanvec of vars by location
+summary(polMod, test="Wilks") 
+
+hydroModP<- manova(cbind(I, L, V, F, W, Y)~Position, data = hydros)#Fits the MANOVA model for meanvec of vars by location
+summary(hydroModP, test="Wilks") 
+
+neutModP <- manova(cbind(C, M, Q, N, A, G)~Position, data=neutral)#Fits the MANOVA model for meanvec of vars by location
+summary(neutModP, test="Wilks") 
+
+chargeModP <- manova(cbind(H, E, D, K, R)~Position, data=charged)#Fits the MANOVA model for meanvec of vars by location
+summary(chargeModP, test="Wilks") 
+
+polModP <- manova(cbind(P, T, S)~Position, data=polar)#Fits the MANOVA model for meanvec of vars by location
+summary(polModP, test="Wilks") 
+```
+
+### Decomposing raw log MANOVA
+```{r ind ANOVA log data}
+summary.aov(hydroMod)
+summary.aov(neutMod)
+summary.aov(polMod)
+summary.aov(chargeMod)
+
+summary.aov(hydroModP)
+summary.aov(neutModP)
+summary.aov(polMod)
+summary.aov(chargeModP)
+```
+
+### ER PCA
+```{r ER_pca}
+ER_PCA <- prcomp(ER[-c(1,22)], scale. = T)
+summary(ER_PCA)
+
+pER <- ncol(ER[-c(1,22)])
+ERPCdat <- data.frame(var_S = diag(ER_S),
+           PC1 = ER_PCA$rotation[,1],
+           PC2 = ER_PCA$rotation[,2],
+           avg_cor = colMeans(abs(ER_R))-1/pER) %>% # subtracting 1/p removes the correlation of the variable with itself
+  arrange(desc(PC1)) #PC1: Hydrophobics at one end, charged at the other
+                     #PC1: Looks like it's based on decreasing then increasing avg.                           correlation
+                     #PC2: not sure what its basis is
+ERPCdat <-rownames_to_column(ERPCdat, var = "sidechain")
+
+ggplot(data = ERPCdat, mapping = aes(x=PC2, y=PC1, color = sidechain, label  = sidechain)) +
+  scale_color_manual(values = palette) +
+  geom_point(size = 2) +
+  geom_text(hjust = 0, nudge_x = 0.01, nudge_y = 0.01) +
+  labs(title = "Plot of ER Principal Components") +
+  theme_minimal(base_size = 18) +
+  theme(legend.position = "none")
+#ggsave("/Users/leekapp/Documents/Portfolio/STAT223Final/images/ERPCplot.pdf", width = 6, height = 6, units = "in")
+```
+
+### Golgi PCA
+```{r golgi_PCA}
+golgi_PCA <- prcomp(golgi[-c(1,22)], scale. = T)
+summary(golgi_PCA)
+
+pG <- ncol(golgi[-c(1,22)])
+golgi_dat <- data.frame(var_S = diag(golgi_S),
+           PC1 = golgi_PCA$rotation[,1],
+           PC2 = golgi_PCA$rotation[,2],
+           avg_cor = colMeans(abs(golgi_R))-1/pG) %>% # subtracting 1/p removes the correlation of the variable with itself
+  arrange(desc(PC1)) #PC1: Hydrophobics at one end, charged at the other
+                     #PC1: Looks like it's based on decreasing then increasing avg.                           correlation
+                     #PC2: not sure what its basis is
+golgi_dat <-rownames_to_column(golgi_dat, var = "sidechain")
+
+ggplot(data = golgi_dat, mapping = aes(x=PC2, y=PC1, color = sidechain, label = sidechain)) +
+  scale_color_manual(values = palette) +
+  geom_point(size = 3) +
+  geom_text(hjust = 0, nudge_x = 0.0025, nudge_y = 0.025) +
+  labs(title = "Plot of Golgi Principal Components") +
+  theme_minimal(base_size = 18)  +
+  theme(legend.position = "none")
+#ggsave("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/GolgiPCplot.pdf", width = 6, height = 6, units = "in")
+```
+
+### PM_PCA
+```{r PM_PCA}
+PM_PCA <- prcomp(PM[-c(1,22)], scale. = T)
+summary(PM_PCA)
+
+pPM <- ncol(PM[-c(1,22)])
+PM_dat <- data.frame(var_S = diag(PM_S),
+           PC1 = PM_PCA$rotation[,1],
+           PC2 = PM_PCA$rotation[,2],
+           avg_cor = colMeans(abs(PM_R))-1/pPM) %>% # subtracting 1/p removes the correlation of the variable with itself
+  arrange(desc(PC1)) #PC1: Hydrophobics at one end, charged at the other
+                     #PC1: Looks like it's based on decreasing then increasing avg.                           correlation
+                     #PC2: not sure what its basis is
+PM_dat <-rownames_to_column(PM_dat, var = "sidechain")
+
+ggplot(data = PM_dat, mapping = aes(x=PC2, y=PC1, color = sidechain, label = sidechain)) +
+  scale_color_manual(values = palette) +
+  geom_point(size = 3) +
+  geom_text(hjust = 0, nudge_x = 0.01, nudge_y = 0.01) +
+  labs(title = "Plot of Plasma Membrane Principal Components") +
+  theme_minimal(base_size = 18) +
+  theme(legend.position = "none")
+#ggsave("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/PMPCplot.pdf", width = 8, height = 6, units = "in")
+```
+
+### Lysosome_PCA
+```{r lyso_PCA}
+lyso_PCA <- prcomp(lyso[-c(1,22)], scale. = T)
+summary(lyso_PCA)
+
+pL <- ncol(lyso[-c(1,22)])
+Lys_dat <- data.frame(var_S = diag(lyso_S),
+           PC1 = lyso_PCA$rotation[,1],
+           PC2 = lyso_PCA$rotation[,2],
+           avg_cor = colMeans(abs(lyso_R))-1/pL) %>% # subtracting 1/p removes the correlation of the variable with itself
+  arrange(desc(PC1)) #PC1: Hydrophobics at one end, charged at the other
+                     #PC1: Looks like it's based on decreasing then increasing avg.                           correlation
+                     #PC2: not sure what its basis is
+
+Lys_dat <-rownames_to_column(Lys_dat, var = "sidechain")
+
+ggplot(data = Lys_dat, mapping = aes(x=PC2, y=PC1, color = sidechain, label = sidechain)) +
+  scale_color_manual(values = palette) +
+  geom_point(size = 3) +
+  geom_text(hjust = 0, nudge_x = 0.01, nudge_y = 0.01) +
+  labs(title = "Plot of Lysosome Principal Components") +
+  theme_minimal(base_size = 18) +
+  theme(legend.position = "none")
+#ggsave("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/LysPCplot.pdf", width = 8, height = 6, units = "in")
+
+```
+
+### TGN_Endo_PCA
+```{r  tgnEndo_PCA}
+tgnEndo_PCA <- prcomp(tgnEndo[-c(1,22)], scale. = T)
+summary(tgnEndo_PCA)
+
+pT <- ncol(tgnEndo[-c(1,22)])
+TGN_dat <- data.frame(var_S = diag(tgnEndo_S),
+           PC1 = tgnEndo_PCA$rotation[,1],
+           PC2 = tgnEndo_PCA$rotation[,2],
+           avg_cor = colMeans(abs(tgnEndo_R))-1/pT) %>% # subtracting 1/p removes the correlation of the variable with itself
+  arrange(desc(PC1)) #PC1: Hydrophobics at one end, charged at the other but in opposite                      order relative to other compartments!
+                     #PC1: Looks like it's based on decreasing then increasing avg.                           correlation
+                     #PC2: not sure what its basis is
+TGN_dat <-rownames_to_column(TGN_dat, var = "sidechain")
+
+ggplot(data = TGN_dat, mapping = aes(x=PC2, y=PC1, color = sidechain, label = sidechain)) +
+  scale_color_manual(values = palette) +
+  geom_point(size = 3) +
+  geom_text(hjust = 0, nudge_x = 0.01, nudge_y = 0.01) +
+  labs(title = "Plot of TGN:Endosome Principal Components") +
+  theme_minimal(base_size = 18) +
+  theme(legend.position = "none")
+#ggsave("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/TGNPCplot.pdf", width = 8, height = 6, units = "in")
+```
+
+### Screeplots
+```{r screeplots}
+pdf("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/ERscree.pdf")
+screeplot(ER_PCA,  npcs=pER, type="lines", pch=19, col=4, main = "ER PCA")
+dev.off()
+pdf("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/Golgiscree.pdf")
+screeplot(golgi_PCA,  npcs=pG, type="lines", pch=19, col=4, main = "Golgi PCA")
+dev.off()
+pdf("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/PMscree.pdf")
+screeplot(PM_PCA,  npcs=pPM, type="lines", pch=19, col=4, main = "Plasma Membrane PCA")
+dev.off()
+pdf("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/Lysoscree.pdf")
+screeplot(lyso_PCA,  npcs=pL, type="lines", pch=19, col=4, main = "Lysosomes PCA")
+dev.off()
+pdf("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/TGNEndoscree.pdf")
+screeplot(tgnEndo_PCA,  npcs=pT, type="lines", pch=19, col=4, "TGN:Endosomes PCA")
+dev.off()
+```
+
+### PCA Tables - does PC2 sort based on charge, size, linear vs ring, or some other chemical property?
+```{r PCATables}
+colnames(ERPCdat) <- c("Sidechain", "Variance", "PC1", "PC2", "Average Corr.")
+colnames(golgi_dat) <- c("Sidechain", "Variance", "PC1", "PC2", "Average Corr.")
+colnames(Lys_dat) <- c("Sidechain", "Variance", "PC1", "PC2", "Average Corr.")
+colnames(PM_dat) <- c("Sidechain", "Variance", "PC1", "PC2", "Average Corr.")
+colnames(TGN_dat) <- c("Sidechain", "Variance", "PC1", "PC2", "Average Corr.")
+
+ERPCdat %>% 
+  kbl(caption = "Table 1. Examination of ER Principal Components") %>% 
+  kable_classic(full_width = F, html_font = "Courier", font_size = 12) %>% 
+  column_spec(1, bold = T) %>% 
+  row_spec(0, bold = T) %>% 
+  save_kable("/Users/leekapp/Documents/Portfolio/STAT223Final/images/ERPCtable.pdf")
+
+golgi_dat %>% 
+  kbl(caption = "Table 2. Examination of Golgi Principal Components") %>% 
+  kable_classic(full_width = F, html_font = "Courier", font_size = 12) %>% 
+  column_spec(1, bold = T) %>% 
+  row_spec(0, bold = T) %>% 
+  save_kable("/Users/leekapp/Documents/Portfolio/STAT223Final/images/GolgiPCtable.pdf")
+
+Lys_dat %>% 
+  kbl(caption = "Table 3. Examination of Lysosome Principal Components") %>% 
+  kable_classic(full_width = F, html_font = "Courier", font_size = 12) %>% 
+  column_spec(1, bold = T) %>% 
+  row_spec(0, bold = T) %>% 
+  save_kable("/Users/leekapp/Documents/Portfolio/STAT223Final/images/LysPCtable.pdf")
+
+PM_dat %>% 
+  kbl(caption = "Table 4. Examination of Plasma Membrane Principal Components") %>% 
+  kable_classic(full_width = F, html_font = "Courier", font_size = 12) %>% 
+  column_spec(1, bold = T) %>% 
+  row_spec(0, bold = T) %>% 
+  save_kable("/Users/leekapp/Documents/Portfolio/STAT223Final/images/PMPCtable.pdf")
+
+TGN_dat %>% 
+  kbl(caption = "Table 5. Examination of TGN:Endosome Principal Components") %>% 
+  kable_classic(full_width = F, html_font = "Courier", font_size = 12) %>% 
+  column_spec(1, bold = T) %>% 
+  row_spec(0, bold = T) %>% 
+  save_kable("/Users/leekapp/Documents/Portfolio/STAT223Final/images/TGNPCtable.pdf")
+
+```
+
+
+### Factor Analysis - choosing m
+```{r chooseM}
+fa.parallel(ER[-c(1,22)], fm = "pa", fa="fa")
+fa.parallel(golgi[-c(1,22)], fm = "pa", fa="fa")
+fa.parallel(lyso[-c(1,22)], fm = "pa", fa="fa")
+fa.parallel(tgnEndo[-c(1,22)], fm = "pa", fa="fa")
+fa.parallel(PM[-c(1,22)], fm = "pa", fa="fa")
+```
+
+
+### PC Method - ER - Looks like 6 factors are needed based on residuals
+```{r FA_ER}
+(ER_pcfa6 <- fa(r = cor(ER[-c(1,22)]),
+                  nfactors = 6,
+                  fm="pa",
+                  rotate = "none",
+                  n.obs = n))
+summary(ER_pcfa6)
+round(ER_pcfa6$residual, 3)
+res_mat6 <- ER_pcfa6$residual-diag(diag(ER_pcfa6$residual))
+max(abs(res_mat6))
+
+corrplot(ER_pcfa6$residual, type = "full",
+         method = "pie")
+
+(ER_pcfa5 <- fa(r = cor(ER[-c(1,22)]), 
+                  nfactors = 5, 
+                  fm="pa",
+                  rotate = "none",
+                  n.obs = n))
+summary(ER_pcfa5)
+round(ER_pcfa5$residual, 3)
+res_mat5 <- ER_pcfa5$residual-diag(diag(ER_pcfa5$residual))
+max(abs(res_mat5))
+
+corrplot(ER_pcfa5$residual, type = "full", 
+         method = "pie")
+```
+
+
+### PC Method - golgi - Looks like 5 factors are needed based on residuals
+```{r golgi_FA}
+(golgi_pcfa5 <- fa(r = cor(golgi[-c(1,22)]),
+                  nfactors = 5,
+                  fm="pa",
+                  rotate = "none",
+                  n.obs = n))
+summary(golgi_pcfa5)
+round(golgi_pcfa5$residual, 3)
+res_mat5 <- golgi_pcfa5$residual-diag(diag(golgi_pcfa5$residual))
+max(abs(res_mat5))
+
+corrplot(golgi_pcfa5$residual, type = "full",
+         method = "pie")
+
+(golgi_pcfa4 <- fa(r = cor(golgi[-c(1,22)]),
+                  nfactors = 4,
+                  fm="pa",
+                  rotate = "none",
+                  n.obs = n))
+summary(golgi_pcfa4)
+round(golgi_pcfa4$residual, 3)
+res_mat4 <- golgi_pcfa4$residual-diag(diag(golgi_pcfa4$residual))
+max(abs(res_mat4))
+
+corrplot(golgi_pcfa4$residual, type = "full",
+         method = "pie")
+```
+
+
+### PC Method Lysosomes - looks like 6 factors are needed based on residuals 
+```{r lyso_FA}
+(lyso_pcfa5 <- fa(r = cor(lyso[-c(1,22)]),
+                  nfactors = 5,
+                  fm="pa",
+                  rotate = "none",
+                  n.obs = n))
+summary(lyso_pcfa5)
+round(lyso_pcfa5$residual, 3)
+res_mat5 <- lyso_pcfa5$residual-diag(diag(lyso_pcfa5$residual))
+max(abs(res_mat5))
+
+corrplot(lyso_pcfa5$residual, type = "full",
+         method = "pie")
+
+(lyso_pcfa6 <- fa(r = cor(lyso[-c(1,22)]),
+                  nfactors = 6,
+                  fm="pa",
+                  rotate = "none",
+                  n.obs = n))
+summary(lyso_pcfa6)
+round(lyso_pcfa6$residual, 3)
+res_mat6 <- lyso_pcfa6$residual-diag(diag(lyso_pcfa6$residual))
+max(abs(res_mat6))
+
+corrplot(lyso_pcfa6$residual, type = "full",
+         method = "pie")
+```
+
+
+### PC Method - PM - maybe 5, definitely 4 factors needed
+```{r PM_FA}
+(PM_pcfa4 <- fa(r = cor(PM[-c(1,22)]),
+                  nfactors = 4,
+                  fm="pa",
+                  rotate = "none",
+                  n.obs = n))
+summary(PM_pcfa4)
+round(PM_pcfa4$residual, 3)
+res_mat5 <- PM_pcfa4$residual-diag(diag(PM_pcfa4$residual))
+max(abs(res_mat4))
+
+corrplot(PM_pcfa4$residual, type = "full",
+         method = "pie")
+
+(PM_pcfa5 <- fa(r = cor(PM[-c(1,22)]),
+                  nfactors = 5,
+                  fm="pa",
+                  rotate = "none",
+                  n.obs = n))
+summary(PM_pcfa5)
+round(PM_pcfa5$residual, 3)
+res_mat5 <- PM_pcfa5$residual-diag(diag(PM_pcfa5$residual))
+max(abs(res_mat5))
+
+corrplot(PM_pcfa5$residual, type = "full",
+         method = "pie")
+```
+
+
+### PC Method - TGN:Endosomes - 5 to 7 factors are required based on residuals
+```{r PM_FA}
+(tgn_pcfa7 <- fa(r = cor(tgnEndo[-c(1,22)]),
+                  nfactors = 7,
+                  fm="pa",
+                  rotate = "none",
+                  n.obs = n))
+summary(tgn_pcfa7)
+round(tgn_pcfa7$residual, 3)
+res_mat7 <- tgn_pcfa7$residual-diag(diag(tgn_pcfa7$residual))
+max(abs(res_mat7))
+
+corrplot(tgn_pcfa7$residual, type = "full",
+         method = "pie")
+
+(tgn_pcfa5 <- fa(r = cor(tgnEndo[-c(1,22)]),
+                  nfactors = 5,
+                  fm="pa",
+                  rotate = "none",
+                  n.obs = n))
+summary(tgn_pcfa5)
+round(tgn_pcfa5$residual, 3)
+res_mat5 <- tgn_pcfa5$residual-diag(diag(tgn_pcfa5$residual))
+max(abs(res_mat5))
+
+corrplot(tgn_pcfa5$residual, type = "full",
+         method = "pie")
+```
+
+
+### Visualizing FA
+```{r}
+theme_set(theme_classic()+
+             theme(axis.title = element_text(size = 16),
+                   axis.text = element_text(size = 16),
+                   plot.title = element_text(size = 18, hjust = 0.5),
+                   plot.subtitle = element_text(size = 14, hjust = 0.5),
+                   plot.caption = element_text(size = 12)))
+
+
+plot_theme <- theme(
+   axis.title = element_text(size = 16),
+   axis.text = element_text(size = 16),
+   plot.title = element_text(size = 18, hjust = 0.5),
+   plot.subtitle = element_text(size = 14, hjust = 0.5),
+   plot.caption = element_text(size = 12),
+   legend.position = "none")
+
+# Convert the loadings to a dataframe
+data.frame(ER_pcfa6$loadings[,1:3]) %>%
+   
+   # Changing the variables from a row name to a column named variable
+   rownames_to_column(var="Variable") %>%
+   
+   # Call on ggplot() and specify x = 1st and y = 2nd factor
+   ggplot(aes(x = PA1, y = PA2, color = Variable)) + 
+   geom_point(aes(size=PA3)) + 
+   scale_color_manual(values = palette) +
+   geom_text_repel(aes(label = Variable)) +
+   labs(x = "Factor 1", y = "Factor 2",
+        title = "Factor Analysis for ER Data") +
+   theme_bw() + plot_theme
+ggsave("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/ERFAplot.pdf", width = 6, height = 6, units = "in")
+
+data.frame(golgi_pcfa5$loadings[,1:3]) %>%
+   
+   # Changing the variables from a row name to a column named variable
+   rownames_to_column(var="Variable") %>%
+   
+   # Call on ggplot() and specify x = 1st and y = 2nd factor
+   ggplot(aes(x = PA1, y = PA2, color = Variable)) + 
+   geom_point(aes(size=PA3)) + 
+   scale_color_manual(values = palette) +
+   geom_text_repel(aes(label = Variable)) +
+   labs(x = "Factor 1", y = "Factor 2",
+        title = "Factor Analysis for Golgi Data") +
+   theme_bw() + plot_theme
+ggsave("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/golgiFAplot.pdf", width = 6, height = 6, units = "in")
+
+data.frame(lyso_pcfa6$loadings[,1:3]) %>%
+   
+   # Changing the variables from a row name to a column named variable
+   rownames_to_column(var="Variable") %>%
+   
+   # Call on ggplot() and specify x = 1st and y = 2nd factor
+   ggplot(aes(x = PA1, y = PA2, color = Variable)) + 
+   geom_point(aes(size=PA3)) + 
+   scale_color_manual(values = palette) +
+   geom_text_repel(aes(label = Variable)) +
+   labs(x = "Factor 1", y = "Factor 2",
+        title = "Factor Analysis for Lysosomes Data") +
+   theme_bw() + plot_theme
+ggsave("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/lysoFAplot.pdf", width = 6, height = 6, units = "in")
+
+data.frame(PM_pcfa5$loadings[,1:3]) %>%
+   
+   # Changing the variables from a row name to a column named variable
+   rownames_to_column(var="Variable") %>%
+   
+   # Call on ggplot() and specify x = 1st and y = 2nd factor
+   ggplot(aes(x = PA1, y = PA2, color = Variable)) + 
+   geom_point(aes(size=PA3)) + 
+   scale_color_manual(values = palette) +
+   geom_text_repel(aes(label = Variable)) +
+   labs(x = "Factor 1", y = "Factor 2",
+        title = "Factor Analysis for Plasma Membrane Data") +
+   theme_bw() + plot_theme
+ggsave("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/PMFAplot.pdf", width = 6, height = 6, units = "in")
+
+data.frame(tgn_pcfa5$loadings[,1:3]) %>%
+   
+   # Changing the variables from a row name to a column named variable
+   rownames_to_column(var="Variable") %>%
+   
+   # Call on ggplot() and specify x = 1st and y = 2nd factor
+   ggplot(aes(x = PA1, y = PA2, color = Variable)) + 
+   geom_point(aes(size=PA3)) + 
+   scale_color_manual(values = palette) +
+   geom_text_repel(aes(label = Variable)) +
+   labs(x = "Factor 1", y = "Factor 2",
+        title = "Factor Analysis for TGN:Endosomes Data") +
+   theme_bw() + plot_theme
+ggsave("/Users/leekapp/Desktop/STAT223/Assignments/STAT223FinalProject/tgnFAplot.pdf", width = 6, height = 6, units = "in")
+```
+
+### K-means
+```{r kmeans}
+### K-means clustering
+AA_stan = data %>% select(-Position, -location) %>% mutate_all(scale)
+
+fviz_pca_ind(prcomp(AA_stan), geom="text")
+fviz_nbclust(AA_stan, FUNcluster = kmeans, method="wss") 
+fviz_nbclust(AA_stan, FUNcluster = kmeans, method="silhouette")
+# Use 4 groups
+
+(AA_km <- kmeans(x=AA_stan, centers= 5, nstart=20))
+fviz_cluster(AA_km, AA_stan, repel=T)
+cluster <- AA_km$cluster
+
+clust_data <- cbind(data, cluster)
+AA_km$centers
+```
+
