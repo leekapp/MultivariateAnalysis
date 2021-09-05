@@ -16,11 +16,9 @@ In this report we review our analysis of data describing the abundance of each a
 
 3. How does amino acid abundance at positions within TM domains vary with intracellular location?
 
-Data were obtained from the supplementary material accompanying the paper by Sharpe, H.J, Stevens, T.J, and Munro, S. *Cell* **142**, 158–169, July 9, 2010.  We examined the data for multivariate normality, univariate and multivariate analysis of variance, principal component analysis, and factor analysis.
-
 ## Data Description
 
-Data consist of matrices of the frequencies of each of the 20 amino acids in single pass TM domains beginning at 5 positions extracellular to the lipid bilayer through up to 9 positions intracellular to the bilayer.  The end of the most hydrophobic region normally embedded within the membrane is known to vary with intracellular compartment, such that TM domains vary in length between 16 and 24 amino acids.
+Data were obtained from the supplementary material accompanying the paper by Sharpe, H.J, Stevens, T.J, and Munro, S. *Cell* **142**, 158–169, July 9, 2010.  We examined the data for multivariate normality, univariate and multivariate analysis of variance, principal component analysis, and factor analysis.  Data consist of matrices of the frequencies of each of the 20 amino acids in single pass TM domains beginning at 5 positions extracellular to the lipid bilayer through up to 9 positions intracellular to the bilayer.  The end of the most hydrophobic region normally embedded within the membrane is known to vary with intracellular compartment, such that TM domains vary in length between 16 and 24 amino acids.
 
 ## Descriptive Statistics
 
